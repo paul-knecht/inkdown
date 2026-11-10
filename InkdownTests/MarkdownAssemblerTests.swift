@@ -26,10 +26,16 @@ final class MarkdownAssemblerTests: XCTestCase {
         XCTAssertEqual(MarkdownAssembler.clean(withCode), .text(withCode))
     }
 
-    func testCleanRecognisesBlankPages() {
+    func testOnlyTheExactMarkerMeansBlank() {
         XCTAssertEqual(MarkdownAssembler.clean("  [BLANK PAGE]\n"), .blank)
-        XCTAssertEqual(MarkdownAssembler.clean(""), .blank)
-        XCTAssertEqual(MarkdownAssembler.clean(" \n "), .blank)
+    }
+
+    // An empty answer is a failure, not a blank page: the page must not
+    // vanish from the file without a trace.
+    func testAnEmptyAnswerIsUnreadableNotBlank() {
+        XCTAssertEqual(MarkdownAssembler.clean(""), .unreadable)
+        XCTAssertEqual(MarkdownAssembler.clean(" \n "), .unreadable)
+        XCTAssertEqual(MarkdownAssembler.clean("```\n```"), .unreadable)
     }
 
     func testCleanTrimsSpaceAroundText() {

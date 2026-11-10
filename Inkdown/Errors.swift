@@ -9,6 +9,7 @@ enum ClaudeError: Error, Equatable {
     case busy           // rate limited or overloaded
     case refused        // the model declined to read the page
     case tooLarge       // the page is too big to send
+    case rejected       // the API did not accept the request itself
     case failed         // anything else
 
     // What the user is told when this error stops a conversion.
@@ -21,6 +22,7 @@ enum ClaudeError: Error, Equatable {
         case .busy: return "Claude is busy right now. Try again in a few minutes."
         case .refused: return "Claude declined to read this PDF."
         case .tooLarge: return "A page of this PDF is too large to send."
+        case .rejected: return "Claude did not accept the request. Inkdown may need an update. Nothing was written."
         case .failed: return "Something went wrong while talking to Claude. Try again."
         }
     }
@@ -34,6 +36,7 @@ enum ConversionError: Error, Equatable {
     case stopped(ClaudeError)   // Claude could not be reached or refused the key
     case cancelled              // the user chose Cancel
     case cannotWrite            // the Markdown file could not be saved
+    case nothingRead            // not a single page could be read
 
     // What the user is told.
     var message: String {
@@ -43,7 +46,8 @@ enum ConversionError: Error, Equatable {
         case .empty: return "This PDF has no pages."
         case .stopped(let error): return error.message
         case .cancelled: return "The conversion was cancelled."
-        case .cannotWrite: return "The Markdown file could not be saved in that folder."
+        case .cannotWrite: return "The Markdown file could not be saved."
+        case .nothingRead: return "None of the pages could be read, so no file was written. Try again in a few minutes."
         }
     }
 }

@@ -45,21 +45,43 @@ final class EntranceTests: XCTestCase {
     }
 
     func testEveryErrorHasAMessage() {
-        let claude: [ClaudeError] = [.noKey, .offline, .unauthorized, .noCredit, .busy, .refused, .tooLarge, .failed]
+        let claude: [ClaudeError] = [.noKey, .offline, .unauthorized, .noCredit, .busy, .refused, .tooLarge, .rejected, .failed]
         for error in claude {
             XCTAssertFalse(error.message.isEmpty)
             XCTAssertEqual(ConversionError.stopped(error).message, error.message)
         }
-        let conversion: [ConversionError] = [.cannotOpen, .locked, .empty, .cancelled, .cannotWrite]
+        let conversion: [ConversionError] = [.cannotOpen, .locked, .empty, .cancelled, .cannotWrite, .nothingRead]
         for error in conversion {
             XCTAssertFalse(error.message.isEmpty)
         }
     }
 
-    func testUnreadablePagesAreNamed() {
-        XCTAssertNil(AppDelegate.unreadableMessage(pages: []))
-        XCTAssertTrue(AppDelegate.unreadableMessage(pages: [3])!.hasPrefix("Page 3 could not be read."))
-        XCTAssertTrue(AppDelegate.unreadableMessage(pages: [2, 5])!.hasPrefix("Pages 2, 5 could not be read."))
+    func testUnreadableAndCutOffPagesAreNamed() {
+        XCTAssertNil(AppDelegate.problemMessage(unreadable: [], cutOff: []))
+        XCTAssertTrue(AppDelegate.problemMessage(unreadable: [3], cutOff: [])!.hasPrefix("Page 3 could not be read."))
+        XCTAssertTrue(AppDelegate.problemMessage(unreadable: [2, 5], cutOff: [])!.hasPrefix("Pages 2, 5 could not be read."))
+        let both = AppDelegate.problemMessage(unreadable: [1], cutOff: [4])!
+        XCTAssertTrue(both.contains("Page 1 could not be read."))
+        XCTAssertTrue(both.contains("Page 4 had too much text"))
+    }
+
+    // Review finding: "Open With" on a PDF while Inkdown is not running
+    // hands over the file before the app has finished launching. The
+    // queue must exist by then, or the app crashes.
+    @MainActor
+    func testEverythingIsSetUpBeforeLaunchFinishes() {
+        // The second delegate made here takes over the Finder service; put
+        // the real one back afterwards so other tests see the normal app.
+        let realProvider = NSApp.servicesProvider
+        defer { NSApp.servicesProvider = realProvider }
+
+        let delegate = AppDelegate()
+        delegate.applicationWillFinishLaunching(Notification(name: NSApplication.willFinishLaunchingNotification))
+        XCTAssertNotNil(delegate.queue)
+        XCTAssertNotNil(delegate.statusItem)
+        // Opening something that is not a PDF must simply do nothing.
+        delegate.application(NSApp, open: [URL(fileURLWithPath: "/tmp/not-a-pdf.txt")])
+        NSStatusBar.system.removeStatusItem(delegate.statusItem)
     }
 
     func testCostQuestionForALongPDF() {

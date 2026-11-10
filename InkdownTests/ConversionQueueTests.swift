@@ -9,8 +9,10 @@ final class ConversionQueueTests: XCTestCase {
     private var written: [(String, URL)] = []
     private var statuses: [QueueStatus] = []
     private var outcomes: [JobOutcome] = []
+    private var savedElsewhere: URL?
 
     override func setUp() {
+        savedElsewhere = nil
         written = []
         statuses = []
         outcomes = []
@@ -37,6 +39,7 @@ final class ConversionQueueTests: XCTestCase {
             write: { [unowned self] text, url in
                 if writeFails { throw CocoaError(.fileWriteNoPermission) }
                 self.written.append((text, url))
+                return self.savedElsewhere ?? url
             })
         queue.onStatus = { [unowned self] in self.statuses.append($0) }
         queue.onOutcome = { [unowned self] in self.outcomes.append($0) }
@@ -60,7 +63,7 @@ final class ConversionQueueTests: XCTestCase {
         XCTAssertEqual(written.map(\.1.lastPathComponent), ["a.md", "b.md"])
         XCTAssertEqual(written.first?.0, "<!-- Page 1 -->\n\nP1\n\n<!-- Page 2 -->\n\nP2\n")
         XCTAssertFalse(queue.isBusy)
-        guard case .done(let output, let result) = outcomes[0] else { return XCTFail("Expected done") }
+        guard case .done(let output, let result) = outcomes.first else { return XCTFail("Expected done") }
         XCTAssertEqual(output.lastPathComponent, "a.md")
         XCTAssertEqual(result.pageCount, 2)
     }
@@ -81,7 +84,7 @@ final class ConversionQueueTests: XCTestCase {
         queue.add(job("b"))
         await wait { self.outcomes.count == 2 && !queue.isBusy }
 
-        XCTAssertEqual(outcomes[0], .failed(pdf: URL(fileURLWithPath: "/tmp/broken.pdf"), error: .cannotOpen))
+        XCTAssertEqual(outcomes.first, .failed(pdf: URL(fileURLWithPath: "/tmp/broken.pdf"), error: .cannotOpen))
         XCTAssertEqual(written.map(\.1.lastPathComponent), ["b.md"])
     }
 
@@ -120,20 +123,55 @@ final class ConversionQueueTests: XCTestCase {
         XCTAssertEqual(written.map(\.1.lastPathComponent), ["c.md"])
     }
 
+    // Review finding: the same PDF queued twice was converted and paid twice.
+    func testTheQueueKnowsWhatItIsWorkingOn() async {
+        let queue = makeQueue(delay: 0.2)
+        queue.add(job("a"))
+        queue.add(job("b"))
+
+        XCTAssertTrue(queue.isQueued(URL(fileURLWithPath: "/tmp/a.pdf")))
+        XCTAssertTrue(queue.isQueued(URL(fileURLWithPath: "/tmp/b.pdf")))
+        XCTAssertFalse(queue.isQueued(URL(fileURLWithPath: "/tmp/c.pdf")))
+        XCTAssertEqual(queue.reservedOutputs.map(\.lastPathComponent).sorted(), ["a.md", "b.md"])
+
+        await wait { !queue.isBusy }
+        XCTAssertFalse(queue.isQueued(URL(fileURLWithPath: "/tmp/a.pdf")))
+        XCTAssertEqual(queue.reservedOutputs, [])
+    }
+
+    // Review finding: when saving next to the PDF fails, the user picks
+    // another place. The result must then point at the real file.
+    func testTheOutcomeNamesWhereTheFileReallyWent() async {
+        savedElsewhere = URL(fileURLWithPath: "/tmp/elsewhere/a.md")
+        let queue = makeQueue()
+        queue.add(job("a"))
+        await wait { self.outcomes.count == 1 }
+
+        guard case .done(let output, _) = outcomes.first else { return XCTFail("Expected done") }
+        XCTAssertEqual(output.path, "/tmp/elsewhere/a.md")
+    }
+
+    func testLastLineMentionsCutOffPages() {
+        let url = URL(fileURLWithPath: "/tmp/notes.md")
+        let result = ConversionResult(markdown: "x", pageCount: 5, unreadablePages: [], incompletePages: [4],
+                                      inputTokens: 0, outputTokens: 0)
+        XCTAssertTrue(ConversionQueue.lastLine(output: url, result: result).hasSuffix(", 1 page cut off"))
+    }
+
     func testLastLineDescribesTheResult() {
         let url = URL(fileURLWithPath: "/tmp/notes.md")
         // 100,000 tokens in and 11,000 out cost $0.20 + $0.11 = $0.31.
-        let twelve = ConversionResult(markdown: "x", pageCount: 12, unreadablePages: [],
+        let twelve = ConversionResult(markdown: "x", pageCount: 12, unreadablePages: [], incompletePages: [],
                                       inputTokens: 100_000, outputTokens: 11_000)
         XCTAssertEqual(ConversionQueue.lastLine(output: url, result: twelve), "notes.md — 12 pages, about $0.31")
 
-        let one = ConversionResult(markdown: "x", pageCount: 1, unreadablePages: [1], inputTokens: 0, outputTokens: 0)
+        let one = ConversionResult(markdown: "x", pageCount: 1, unreadablePages: [1], incompletePages: [], inputTokens: 0, outputTokens: 0)
         XCTAssertEqual(ConversionQueue.lastLine(output: url, result: one), "notes.md — 1 page, about $0.00, 1 page unreadable")
 
-        let two = ConversionResult(markdown: "x", pageCount: 5, unreadablePages: [2, 4], inputTokens: 0, outputTokens: 0)
+        let two = ConversionResult(markdown: "x", pageCount: 5, unreadablePages: [2, 4], incompletePages: [], inputTokens: 0, outputTokens: 0)
         XCTAssertTrue(ConversionQueue.lastLine(output: url, result: two).hasSuffix(", 2 pages unreadable"))
 
-        let empty = ConversionResult(markdown: "", pageCount: 3, unreadablePages: [], inputTokens: 0, outputTokens: 0)
+        let empty = ConversionResult(markdown: "", pageCount: 3, unreadablePages: [], incompletePages: [], inputTokens: 0, outputTokens: 0)
         XCTAssertTrue(ConversionQueue.lastLine(output: url, result: empty).hasSuffix(", no text found"))
     }
 

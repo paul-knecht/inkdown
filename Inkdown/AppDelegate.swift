@@ -28,10 +28,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Above this many pages Inkdown asks before it starts, because of the cost.
     static let askAbovePages = 50
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        // Only one copy of Inkdown may run; this one replaces any older copy.
-        SingleInstance.quitOlderCopies()
-
+    // Everything is set up here, before the app has finished launching.
+    // When Inkdown is started by "Open With" or by the Finder entry, macOS
+    // hands over the PDF very early, and the queue must exist by then.
+    func applicationWillFinishLaunching(_ notification: Notification) {
         installEditMenu()
         installStatusItem()
         installQueue()
@@ -42,6 +42,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         dropTarget = DropTarget { [weak self] urls in self?.convert(urls: urls) }
         dropTarget.attach(to: statusItem)
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Only one copy of Inkdown may run; this one replaces any older copy.
+        SingleInstance.quitOlderCopies()
     }
 
     // MARK: Setup
@@ -103,8 +108,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     try await ClaudeClient.transcribe(pagePDF: data, page: page, of: total, apiKey: key)
                 })
             },
-            write: { text, url in
-                try text.write(to: url, atomically: true, encoding: .utf8)
+            write: { [weak self] text, url in
+                do {
+                    try text.write(to: url, atomically: true, encoding: .utf8)
+                    return url
+                } catch {
+                    // Saving next to the PDF failed (a read-only folder, for
+                    // example). The pages are already paid for, so let the
+                    // user pick another place instead of losing the text.
+                    guard let other = self?.askWhereToSave(insteadOf: url) else { throw error }
+                    try text.write(to: other, atomically: true, encoding: .utf8)
+                    return other
+                }
             })
         queue.onStatus = { [weak self] status in self?.show(status) }
         queue.onOutcome = { [weak self] outcome in self?.handle(outcome) }
@@ -125,20 +140,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .done(let output, let result):
             // Show the new file in Finder.
             NSWorkspace.shared.activateFileViewerSelecting([output])
-            if let message = AppDelegate.unreadableMessage(pages: result.unreadablePages) {
-                showMessage(title: "Some pages could not be read", text: message)
+            if let message = AppDelegate.problemMessage(unreadable: result.unreadablePages,
+                                                        cutOff: result.incompletePages) {
+                showMessageLater(title: "“\(output.lastPathComponent)” has gaps", text: message)
             }
         case .failed(let pdf, let error):
-            showMessage(title: "“\(pdf.lastPathComponent)” was not converted", text: error.message)
+            showMessageLater(title: "“\(pdf.lastPathComponent)” was not converted", text: error.message)
         }
     }
 
-    // The sentence that names unreadable pages, or nil if there are none.
-    nonisolated static func unreadableMessage(pages: [Int]) -> String? {
-        guard !pages.isEmpty else { return nil }
-        let list = pages.map(String.init).joined(separator: ", ")
-        let subject = pages.count == 1 ? "Page \(list)" : "Pages \(list)"
-        return "\(subject) could not be read. The file marks each place with [PAGE … COULD NOT BE READ]."
+    // Shows a message a moment later instead of right now. A message
+    // waits for a click on OK; shown right away, it would hold up the
+    // queue, and the next PDF would not start until someone clicked.
+    private func showMessageLater(title: String, text: String) {
+        DispatchQueue.main.async { self.showMessage(title: title, text: text) }
+    }
+
+    // The sentences that name unreadable and cut-off pages, or nil if all went well.
+    nonisolated static func problemMessage(unreadable: [Int], cutOff: [Int]) -> String? {
+        func subject(_ pages: [Int]) -> String {
+            let list = pages.map(String.init).joined(separator: ", ")
+            return pages.count == 1 ? "Page \(list)" : "Pages \(list)"
+        }
+        var sentences: [String] = []
+        if !unreadable.isEmpty {
+            sentences.append("\(subject(unreadable)) could not be read. The file marks each place with [PAGE … COULD NOT BE READ].")
+        }
+        if !cutOff.isEmpty {
+            sentences.append("\(subject(cutOff)) had too much text for one answer and stopped early. The file marks each place with [PAGE … WAS CUT OFF].")
+        }
+        return sentences.isEmpty ? nil : sentences.joined(separator: " ")
+    }
+
+    // Lets the user choose where to save a Markdown file. Returns nil on Cancel.
+    private func askWhereToSave(insteadOf url: URL) -> URL? {
+        let panel = NSSavePanel()
+        panel.message = "“\(url.lastPathComponent)” could not be saved next to the PDF. Choose another place."
+        panel.nameFieldStringValue = url.lastPathComponent
+        NSApp.activate(ignoringOtherApps: true)
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     // Shows a message with an OK button.
@@ -216,6 +256,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         for pdf in pdfs {
+            // A PDF that is already being converted or waiting is not added twice.
+            if queue.isQueued(pdf) { continue }
+
             // 2. Can the PDF be read at all?
             let pageCount: Int
             do {
@@ -234,8 +277,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                  buttons: ["Keep Both", "Replace", "Cancel"])
                 if choice == 2 { continue }
                 if choice == 0 {
-                    output = OutputNaming.keepBothURL(for: pdf) { FileManager.default.fileExists(atPath: $0.path) }
+                    // Skip names that exist and names another waiting PDF will use.
+                    let reserved = queue.reservedOutputs.map(\.path)
+                    output = OutputNaming.keepBothURL(for: pdf) {
+                        FileManager.default.fileExists(atPath: $0.path) || reserved.contains($0.path)
+                    }
                 }
+            }
+
+            // If the PDF's folder cannot be written to, ask for another
+            // place now, before any page is sent and paid for.
+            let folder = output.deletingLastPathComponent().path
+            if !FileManager.default.isWritableFile(atPath: folder) {
+                guard let other = askWhereToSave(insteadOf: output) else { continue }
+                output = other
             }
 
             // 4. Long PDFs cost more; ask once.
@@ -279,8 +334,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let key = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         if key.isEmpty {
             keychain.delete()
-        } else {
-            keychain.save(key)
+        } else if !keychain.save(key) {
+            showMessage(title: "The key could not be stored",
+                        text: "The Keychain did not accept the key. Try Set API key… again.")
         }
     }
 }

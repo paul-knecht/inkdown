@@ -48,7 +48,8 @@ final class ConversionQueue {
     // tests pass fakes.
     private let split: @Sendable (URL) throws -> [Data]
     private let makeConverter: () -> Converter
-    private let write: (String, URL) throws -> Void
+    // `write` saves the text and returns where it really ended up.
+    private let write: (String, URL) throws -> URL
 
     // Called whenever the status changes, and whenever a job ends.
     var onStatus: ((QueueStatus) -> Void)?
@@ -56,6 +57,7 @@ final class ConversionQueue {
 
     private var waiting: [Job] = []
     private var running: Task<Void, Never>?
+    private var current: Job?
     private var lastLine: String?
 
     // Goes up by one with every Cancel. A job remembers the number it
@@ -65,7 +67,7 @@ final class ConversionQueue {
 
     init(split: @escaping @Sendable (URL) throws -> [Data],
          makeConverter: @escaping () -> Converter,
-         write: @escaping (String, URL) throws -> Void) {
+         write: @escaping (String, URL) throws -> URL) {
         self.split = split
         self.makeConverter = makeConverter
         self.write = write
@@ -74,6 +76,17 @@ final class ConversionQueue {
     // True while a PDF is being converted or waiting.
     var isBusy: Bool {
         running != nil || !waiting.isEmpty
+    }
+
+    // True if this PDF is already being converted or waiting.
+    func isQueued(_ pdf: URL) -> Bool {
+        (waiting + [current].compactMap { $0 }).contains { $0.pdf.path == pdf.path }
+    }
+
+    // The files that running and waiting jobs are going to write. A new
+    // job must not pick one of these names.
+    var reservedOutputs: [URL] {
+        (waiting + [current].compactMap { $0 }).map(\.output)
     }
 
     // Adds a PDF. It starts at once if nothing else is running.
@@ -89,6 +102,7 @@ final class ConversionQueue {
         waiting.removeAll()
         running?.cancel()
         running = nil
+        current = nil
         onStatus?(.idle(last: lastLine))
     }
 
@@ -99,12 +113,17 @@ final class ConversionQueue {
             return
         }
         let job = waiting.removeFirst()
+        current = job
+        // Every job gets its own number, so late news from an older job
+        // can be told apart and ignored.
+        generation += 1
         let mine = generation
         running = Task {
             await self.run(job, generation: mine)
             // Only move on if this job was not cancelled in the meantime.
             if self.generation == mine {
                 self.running = nil
+                self.current = nil
                 self.startNextIfIdle()
             }
         }
@@ -124,19 +143,20 @@ final class ConversionQueue {
 
             let result = try await makeConverter().convert(pages: pages) { done, total in
                 Task { @MainActor in
-                    guard self.generation == mine, self.running != nil else { return }
+                    guard self.generation == mine else { return }
                     self.onStatus?(.converting(name: name, done: done, total: total))
                 }
             }
             guard generation == mine else { return }
 
+            let saved: URL
             do {
-                try write(result.markdown, job.output)
+                saved = try write(result.markdown, job.output)
             } catch {
                 throw ConversionError.cannotWrite
             }
-            lastLine = ConversionQueue.lastLine(output: job.output, result: result)
-            onOutcome?(.done(output: job.output, result: result))
+            lastLine = ConversionQueue.lastLine(output: saved, result: result)
+            onOutcome?(.done(output: saved, result: result))
         } catch ConversionError.cancelled {
             // The user chose Cancel: nothing to report.
         } catch let error as ConversionError {
@@ -157,6 +177,10 @@ final class ConversionQueue {
         if !result.unreadablePages.isEmpty {
             let count = result.unreadablePages.count
             line += count == 1 ? ", 1 page unreadable" : ", \(count) pages unreadable"
+        }
+        if !result.incompletePages.isEmpty {
+            let count = result.incompletePages.count
+            line += count == 1 ? ", 1 page cut off" : ", \(count) pages cut off"
         }
         if result.markdown.isEmpty {
             line += ", no text found"

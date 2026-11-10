@@ -24,11 +24,18 @@ enum MarkdownAssembler {
     }
 
     // Tidies what Claude sent back for one page.
+    //
+    // A page only counts as blank if Claude said so with exactly
+    // `[BLANK PAGE]`. An empty answer means something went wrong, and the
+    // page is marked as unreadable so that it can never go missing silently.
     static func clean(_ text: String) -> PageResult {
         var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
         cleaned = removingSurroundingFence(cleaned)
-        if cleaned.isEmpty || cleaned == "[BLANK PAGE]" {
+        if cleaned == "[BLANK PAGE]" {
             return .blank
+        }
+        if cleaned.isEmpty {
+            return .unreadable
         }
         return .text(cleaned)
     }

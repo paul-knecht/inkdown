@@ -42,6 +42,7 @@ final class ConverterTests: XCTestCase {
     private func converter(_ fake: FakeClaude, maxAtOnce: Int = 4) -> Converter {
         Converter(transcribe: { _, page, _ in try await fake.transcribe(page: page) },
                   retryDelays: [0, 0],
+                  busyDelays: [0, 0, 0],
                   maxAtOnce: maxAtOnce)
     }
 
@@ -147,6 +148,75 @@ final class ConverterTests: XCTestCase {
         }
         let result = try await converter(fake).convert(pages: pages(1)) { _, _ in }
         XCTAssertEqual(result.markdown, "<!-- Page 1 -->\n\nHalf\n\n[PAGE 1 WAS CUT OFF]\n")
+    }
+
+    // Review finding: an empty answer used to count as a blank page and
+    // the page vanished from the file without a trace.
+    func testAnEmptyAnswerIsMarkedAndReported() async throws {
+        let fake = FakeClaude { page, _ in
+            PageAnswer(text: page == 2 ? "" : "P\(page)", inputTokens: 1, outputTokens: 1, cutOff: page == 2)
+        }
+        let result = try await converter(fake).convert(pages: pages(3)) { _, _ in }
+        XCTAssertEqual(result.unreadablePages, [2])
+        XCTAssertTrue(result.markdown.contains("[PAGE 2 COULD NOT BE READ]"))
+    }
+
+    // Review finding: a cut-off page was marked in the file but never reported.
+    func testACutOffPageIsReported() async throws {
+        let fake = FakeClaude { page, _ in
+            PageAnswer(text: "P\(page)", inputTokens: 1, outputTokens: 1, cutOff: page == 3)
+        }
+        let result = try await converter(fake).convert(pages: pages(3)) { _, _ in }
+        XCTAssertEqual(result.incompletePages, [3])
+        XCTAssertEqual(result.unreadablePages, [])
+    }
+
+    // Review finding: when every page failed, a file with nothing but
+    // failure marks was written (and could replace a good file).
+    func testNothingIsProducedWhenNoPageCouldBeRead() async {
+        let fake = FakeClaude { _, _ in throw ClaudeError.failed }
+        do {
+            _ = try await converter(fake).convert(pages: pages(3)) { _, _ in }
+            XCTFail("Expected an error")
+        } catch {
+            XCTAssertEqual(error as? ConversionError, .nothingRead)
+        }
+    }
+
+    // Review finding: a request the API rejects as wrong was retried page
+    // by page instead of stopping.
+    func testARejectedRequestStopsEverythingWithoutRetry() async {
+        let fake = FakeClaude { _, _ in throw ClaudeError.rejected }
+        do {
+            _ = try await converter(fake, maxAtOnce: 1).convert(pages: pages(10)) { _, _ in }
+            XCTFail("Expected an error")
+        } catch {
+            XCTAssertEqual(error as? ConversionError, .stopped(.rejected))
+        }
+        let calls = await fake.calls
+        XCTAssertEqual(calls, 1)
+    }
+
+    // Review finding: "busy" gave up after the same few tries as other
+    // errors. It now has its own, longer list of waits.
+    func testBusyHasItsOwnNumberOfTries() async throws {
+        let fake = FakeClaude { page, attempt in
+            if attempt <= 3 { throw ClaudeError.busy }
+            return PageAnswer(text: "P\(page)", inputTokens: 1, outputTokens: 1, cutOff: false)
+        }
+        // Two normal retries would not be enough; three busy retries are.
+        let result = try await converter(fake).convert(pages: pages(1)) { _, _ in }
+        XCTAssertEqual(result.markdown, "<!-- Page 1 -->\n\nP1\n")
+    }
+
+    func testStayingBusyStopsEverything() async {
+        let fake = FakeClaude { _, _ in throw ClaudeError.busy }
+        do {
+            _ = try await converter(fake).convert(pages: pages(2)) { _, _ in }
+            XCTFail("Expected an error")
+        } catch {
+            XCTAssertEqual(error as? ConversionError, .stopped(.busy))
+        }
     }
 
     func testBlankPagesAreLeftOut() async throws {

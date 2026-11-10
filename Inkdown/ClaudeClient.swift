@@ -90,6 +90,9 @@ enum ClaudeClient {
             if statusCode == 402 || text.contains("credit balance") { throw ClaudeError.noCredit }
             if statusCode == 413 { throw ClaudeError.tooLarge }
             if statusCode == 429 || statusCode == 529 { throw ClaudeError.busy }
+            // The API says the request itself is wrong (or not allowed).
+            // Trying again, or trying the next page, would fail the same way.
+            if statusCode == 400 || statusCode == 403 || statusCode == 404 { throw ClaudeError.rejected }
             throw ClaudeError.failed
         }
 
@@ -112,22 +115,40 @@ enum ClaudeClient {
                           cutOff: reply.stop_reason == "max_tokens")
     }
 
+    // Builds the complete request for one page: address, headers and body.
+    static func request(pagePDF: Data, page: Int, of total: Int, apiKey: String) throws -> URLRequest {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        // Reading a full page of handwriting can take a while.
+        request.timeoutInterval = 240
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2026-10-21", forHTTPHeaderField: "anthropic-version")
+        // Needed for the "fallbacks" field in the body.
+        request.setValue("server-side-fallback-2026-07-01", forHTTPHeaderField: "anthropic-beta")
+        request.httpBody = try requestBody(pagePDF: pagePDF, page: page, of: total)
+        return request
+    }
+
+    // Names the failure when a request got no reply at all.
+    static func error(for urlError: URLError) -> ClaudeError {
+        switch urlError.code {
+        case .timedOut:
+            // The connection works but this page took too long: a problem
+            // with this page, not with the internet connection.
+            return .failed
+        default:
+            return .offline
+        }
+    }
+
     // Sends one page and waits for the transcription.
     static func transcribe(pagePDF: Data, page: Int, of total: Int, apiKey: String?) async throws -> PageAnswer {
         let key = (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { throw ClaudeError.noKey }
         guard pagePDF.count <= maxPageBytes else { throw ClaudeError.tooLarge }
 
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        // Reading a full page of handwriting can take a while.
-        request.timeoutInterval = 240
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
-        request.setValue("2026-10-21", forHTTPHeaderField: "anthropic-version")
-        // Needed for the "fallbacks" field in the body.
-        request.setValue("server-side-fallback-2026-07-01", forHTTPHeaderField: "anthropic-beta")
-        request.httpBody = try requestBody(pagePDF: pagePDF, page: page, of: total)
+        let request = try request(pagePDF: pagePDF, page: page, of: total, apiKey: key)
 
         let data: Data
         let response: URLResponse
@@ -137,8 +158,9 @@ enum ClaudeClient {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
+        } catch let error as URLError {
+            throw ClaudeClient.error(for: error)
         } catch {
-            // The request never got an answer: no connection, or it took too long.
             throw ClaudeError.offline
         }
 

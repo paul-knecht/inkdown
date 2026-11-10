@@ -37,6 +37,25 @@ final class ClaudeClientTests: XCTestCase {
         XCTAssertTrue((content[1]["text"] as? String ?? "").contains("3"))
     }
 
+    func testRequestCarriesTheRightHeadersAndKeepsTheKeyOutOfTheAddress() throws {
+        let request = try ClaudeClient.request(pagePDF: Data([1, 2, 3]), page: 1, of: 1, apiKey: "test-key")
+
+        XCTAssertEqual(request.url?.absoluteString, "https://api.anthropic.com/v1/messages")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-api-key"), "test-key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "anthropic-version"), "2026-10-21")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "anthropic-beta"), "server-side-fallback-2026-07-01")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "content-type"), "application/json")
+        let body = String(data: try XCTUnwrap(request.httpBody), encoding: .utf8) ?? ""
+        XCTAssertFalse(body.contains("test-key"))
+    }
+
+    func testATimeoutIsAPageProblemNotAConnectionProblem() {
+        XCTAssertEqual(ClaudeClient.error(for: URLError(.timedOut)), .failed)
+        XCTAssertEqual(ClaudeClient.error(for: URLError(.notConnectedToInternet)), .offline)
+        XCTAssertEqual(ClaudeClient.error(for: URLError(.networkConnectionLost)), .offline)
+    }
+
     // MARK: Reading replies
 
     func testParseJoinsTextBlocksAndSkipsThinking() throws {
@@ -81,6 +100,9 @@ final class ClaudeClientTests: XCTestCase {
         assertParse("{}", status: 429, throws: .busy)
         assertParse("{}", status: 529, throws: .busy)
         assertParse("{}", status: 500, throws: .failed)
+        assertParse("{}", status: 400, throws: .rejected)
+        assertParse("{}", status: 403, throws: .rejected)
+        assertParse("{}", status: 404, throws: .rejected)
         assertParse("not json", status: 200, throws: .failed)
         assertParse(#"{"content":[],"stop_reason":"refusal"}"#, status: 200, throws: .refused)
     }
