@@ -1,0 +1,320 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		BB0000000000000000000020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BB0000000000000000000009 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB0000000000000000000006;
+			remoteInfo = Inkdown;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		BB0000000000000000000001 /* Inkdown.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkdown.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000011 /* InkdownTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InkdownTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BB0000000000000000000002 /* Inkdown */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Inkdown;
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000012 /* InkdownTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = InkdownTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BB0000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000013 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BB0000000000000000000004 = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000002 /* Inkdown */,
+				BB0000000000000000000012 /* InkdownTests */,
+				BB0000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000001 /* Inkdown.app */,
+				BB0000000000000000000011 /* InkdownTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BB0000000000000000000006 /* Inkdown */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB000000000000000000000D /* Build configuration list for PBXNativeTarget "Inkdown" */;
+			buildPhases = (
+				BB0000000000000000000007 /* Sources */,
+				BB0000000000000000000003 /* Frameworks */,
+				BB0000000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BB0000000000000000000002 /* Inkdown */,
+			);
+			name = Inkdown;
+			productName = Inkdown;
+			productReference = BB0000000000000000000001 /* Inkdown.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BB0000000000000000000016 /* InkdownTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB000000000000000000001D /* Build configuration list for PBXNativeTarget "InkdownTests" */;
+			buildPhases = (
+				BB0000000000000000000017 /* Sources */,
+				BB0000000000000000000013 /* Frameworks */,
+				BB0000000000000000000018 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BB0000000000000000000021 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BB0000000000000000000012 /* InkdownTests */,
+			);
+			name = InkdownTests;
+			productName = InkdownTests;
+			productReference = BB0000000000000000000011 /* InkdownTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BB0000000000000000000009 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2720;
+				TargetAttributes = {
+					BB0000000000000000000016 = {
+						TestTargetID = BB0000000000000000000006;
+					};
+				};
+			};
+			buildConfigurationList = BB000000000000000000000A /* Build configuration list for PBXProject "Inkdown" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BB0000000000000000000004;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BB0000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BB0000000000000000000006 /* Inkdown */,
+				BB0000000000000000000016 /* InkdownTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB0000000000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000018 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BB0000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000017 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BB0000000000000000000021 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB0000000000000000000006 /* Inkdown */;
+			targetProxy = BB0000000000000000000020 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BB000000000000000000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BB000000000000000000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		BB000000000000000000000E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.inkdown;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BB000000000000000000000F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.inkdown;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BB000000000000000000001E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.inkdown.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkdown.app/Contents/MacOS/Inkdown";
+			};
+			name = Debug;
+		};
+		BB000000000000000000001F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.inkdown.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkdown.app/Contents/MacOS/Inkdown";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BB000000000000000000000A /* Build configuration list for PBXProject "Inkdown" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB000000000000000000000B /* Debug */,
+				BB000000000000000000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB000000000000000000000D /* Build configuration list for PBXNativeTarget "Inkdown" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB000000000000000000000E /* Debug */,
+				BB000000000000000000000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB000000000000000000001D /* Build configuration list for PBXNativeTarget "InkdownTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB000000000000000000001E /* Debug */,
+				BB000000000000000000001F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BB0000000000000000000009 /* Project object */;
+}
