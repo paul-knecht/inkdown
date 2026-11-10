@@ -1,7 +1,15 @@
 # Inkdown
 
+<p align="center"><img src="docs/images/inkdown-handwriting.png" width="480" alt="A handwritten line on graph paper"><br>↓<br><img src="docs/images/inkdown-markdown.png" width="480" alt="The same line as text in the Markdown file Inkdown wrote"></p>
+
 A small macOS menu bar app that turns a PDF of handwritten notes into a
 Markdown file with the handwriting as plain text. Claude reads the pages.
+
+## Why I built it
+
+I take my class notes by hand in GoodNotes and wanted the handwriting as plain text, in one right-click. Getting the transcription right mattered more to me than speed or looks.
+
+Built with [Claude Code](https://claude.com/claude-code) while learning Swift, Xcode and Git.
 
 ## What it does
 
@@ -37,6 +45,8 @@ Keychain, never in a file.
 While Inkdown works, the icon shows a counter such as `3/12`, and the first
 line of its menu says which page it is on. **Cancel** in the menu stops the
 conversion; nothing is written.
+
+<p align="center"><img src="docs/images/inkdown-menu.png" width="420" alt="Inkdown menu after a conversion, with page count and cost"></p>
 
 ## What the Markdown file looks like
 
