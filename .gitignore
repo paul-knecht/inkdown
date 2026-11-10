@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Xcode build output
+build/
+DerivedData/
+
+# Xcode per-user settings (window layout, breakpoints, etc.)
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Superpowers scratch files
+.superpowers/
+
+# Log of a failed install build
+build-install.log

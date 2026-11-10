@@ -1,0 +1,1 @@
+I'm a beginner. After each step, briefly explain what you did and why in plain language. Keep code simple. Work on a feature branch and merge into main locally when a feature is done. Build and run the app before saying something is done.
