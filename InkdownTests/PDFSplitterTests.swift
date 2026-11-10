@@ -28,6 +28,13 @@ final class PDFSplitterTests: XCTestCase {
         }
     }
 
+    func testPageCount() throws {
+        let url = folder.appendingPathComponent("five.pdf")
+        XCTAssertTrue(TestPDF.make(pages: 5).write(to: url))
+        XCTAssertEqual(try PDFSplitter.pageCount(of: url), 5)
+        XCTAssertThrowsError(try PDFSplitter.pageCount(of: folder.appendingPathComponent("no.pdf")))
+    }
+
     func testMissingFileCannotBeOpened() {
         let url = folder.appendingPathComponent("nothing.pdf")
         XCTAssertThrowsError(try PDFSplitter.pages(of: url)) { error in
