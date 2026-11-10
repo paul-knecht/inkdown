@@ -88,6 +88,7 @@ If some pages could not be read, a message says which.
   Markdown tables.
 - Formulas in LaTeX: `$…$` inline, `$$…$$` on their own line.
 - `[ILLEGIBLE]` for a word that can't be read.
+- `[?]` after a word that is mostly readable but uncertain. **(Claude's call)**
 - `[DIAGRAM: short description]` for a drawing, chart or sketch.
 - Each page starts with an invisible marker `<!-- Page N -->` so the text can
   be checked against the original. **(Claude's call)**
@@ -120,10 +121,14 @@ call)** Not streamed: a page's text is short.
 
 **Failures per page.** Busy or overloaded → wait and retry (3 tries). Wrong
 key, no credit, no key → stop the whole conversion with the reason. No
-connection after retries → stop with the reason. Model declined, cut off, or
-other error after retries → that page becomes `[PAGE N COULD NOT BE READ]`
-and the rest continues. A single page larger than 20 MB is treated as
-unreadable.
+connection after retries → stop with the reason. A request the API rejects
+as wrong → stop with the reason. Model declined, empty answer, or other error
+after retries → that page becomes `[PAGE N COULD NOT BE READ]` and the rest
+continues. A page whose answer was cut off keeps its text, ends with
+`[PAGE N WAS CUT OFF]`, and is reported like an unreadable page (changed
+after review: keeping the text loses less than discarding it). If pages
+failed and no page produced any text, nothing is written. A single page
+larger than 20 MB is treated as unreadable.
 
 **Cost shown.** Each response reports the tokens used; the app adds them up
 and shows an approximate dollar amount from the model's list price, held in
