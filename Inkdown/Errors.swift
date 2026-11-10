@@ -33,6 +33,7 @@ enum ConversionError: Error, Equatable {
     case empty                  // the PDF has no pages
     case stopped(ClaudeError)   // Claude could not be reached or refused the key
     case cancelled              // the user chose Cancel
+    case cannotWrite            // the Markdown file could not be saved
 
     // What the user is told.
     var message: String {
@@ -42,6 +43,7 @@ enum ConversionError: Error, Equatable {
         case .empty: return "This PDF has no pages."
         case .stopped(let error): return error.message
         case .cancelled: return "The conversion was cancelled."
+        case .cannotWrite: return "The Markdown file could not be saved in that folder."
         }
     }
 }
