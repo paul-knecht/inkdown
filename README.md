@@ -88,3 +88,7 @@ xcodebuild -project Inkdown.xcodeproj -scheme Inkdown -derivedDataPath build tes
 The model and its price are constants at the top of
 `Inkdown/ClaudeClient.swift`. The instructions Claude gets are in
 `Inkdown/Prompts.swift`.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
